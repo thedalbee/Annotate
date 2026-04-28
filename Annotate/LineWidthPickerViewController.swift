@@ -21,21 +21,36 @@ class LineWidthPickerViewController: NSViewController {
     }
     
     override func loadView() {
-        let containerView = NSView(frame: NSRect(x: 0, y: 0, width: 280, height: 120))
+        let containerView = NSView(frame: NSRect(x: 0, y: 0, width: 300, height: 140))
+
+        let visualEffect = NSVisualEffectView(frame: containerView.bounds)
+        visualEffect.material = .hudWindow
+        visualEffect.blendingMode = .behindWindow
+        visualEffect.state = .active
+        visualEffect.wantsLayer = true
+        visualEffect.layer?.cornerRadius = 14
+        visualEffect.layer?.masksToBounds = true
+        visualEffect.translatesAutoresizingMaskIntoConstraints = false
+        containerView.addSubview(visualEffect)
 
         let titleLabel = NSTextField(labelWithString: "Line Width")
-        titleLabel.font = NSFont.systemFont(ofSize: 13, weight: .medium)
+        titleLabel.font = NSFont.systemFont(ofSize: 11, weight: .semibold)
         titleLabel.alignment = .center
+        titleLabel.textColor = .labelColor
+        titleLabel.alphaValue = 0.65
 
         valueLabel = NSTextField(labelWithString: "")
-        valueLabel.font = NSFont.systemFont(ofSize: 11)
+        valueLabel.font = .monospacedDigitSystemFont(ofSize: 11, weight: .medium)
         valueLabel.alignment = .center
         valueLabel.textColor = .secondaryLabelColor
 
-        previewView = LineWidthPreviewView(frame: NSRect(x: 0, y: 0, width: 260, height: 40))
+        previewView = LineWidthPreviewView(frame: NSRect(x: 0, y: 0, width: 270, height: 44))
         previewView.lineWidth = getCurrentLineWidth()
+        previewView.wantsLayer = true
+        previewView.layer?.cornerRadius = 8
+        previewView.layer?.masksToBounds = true
 
-        slider = NSSlider(frame: NSRect(x: 0, y: 0, width: 260, height: 20))
+        slider = NSSlider(frame: NSRect(x: 0, y: 0, width: 270, height: 20))
         slider.minValue = Double(minLineWidth)
         slider.maxValue = Double(maxLineWidth)
         slider.numberOfTickMarks = 0
@@ -51,30 +66,35 @@ class LineWidthPickerViewController: NSViewController {
         containerView.addSubview(valueLabel)
         containerView.addSubview(previewView)
         containerView.addSubview(slider)
-        
+
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
         valueLabel.translatesAutoresizingMaskIntoConstraints = false
         previewView.translatesAutoresizingMaskIntoConstraints = false
         slider.translatesAutoresizingMaskIntoConstraints = false
-        
+
         NSLayoutConstraint.activate([
-            titleLabel.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 10),
+            visualEffect.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
+            visualEffect.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
+            visualEffect.topAnchor.constraint(equalTo: containerView.topAnchor),
+            visualEffect.bottomAnchor.constraint(equalTo: containerView.bottomAnchor),
+
+            titleLabel.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 12),
             titleLabel.centerXAnchor.constraint(equalTo: containerView.centerXAnchor),
-            
-            previewView.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 8),
+
+            previewView.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 10),
             previewView.centerXAnchor.constraint(equalTo: containerView.centerXAnchor),
-            previewView.widthAnchor.constraint(equalToConstant: 260),
-            previewView.heightAnchor.constraint(equalToConstant: 40),
-            
-            slider.topAnchor.constraint(equalTo: previewView.bottomAnchor, constant: 8),
+            previewView.widthAnchor.constraint(equalToConstant: 270),
+            previewView.heightAnchor.constraint(equalToConstant: 44),
+
+            slider.topAnchor.constraint(equalTo: previewView.bottomAnchor, constant: 10),
             slider.centerXAnchor.constraint(equalTo: containerView.centerXAnchor),
-            slider.widthAnchor.constraint(equalToConstant: 260),
-            
-            valueLabel.topAnchor.constraint(equalTo: slider.bottomAnchor, constant: 4),
+            slider.widthAnchor.constraint(equalToConstant: 270),
+
+            valueLabel.topAnchor.constraint(equalTo: slider.bottomAnchor, constant: 6),
             valueLabel.centerXAnchor.constraint(equalTo: containerView.centerXAnchor),
-            valueLabel.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -10),
+            valueLabel.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -12),
         ])
-        
+
         self.view = containerView
     }
     
@@ -120,25 +140,28 @@ class LineWidthPreviewView: NSView {
         super.draw(dirtyRect)
 
         let color = AppDelegate.shared?.currentColor ?? NSColor.systemRed
+        let radius: CGFloat = 8
 
-        let backgroundColor = color.contrastingColor().withAlphaComponent(0.75)
+        let bgPath = NSBezierPath(roundedRect: bounds, xRadius: radius, yRadius: radius)
+        let backgroundColor = color.contrastingColor().withAlphaComponent(0.55)
         backgroundColor.setFill()
-        bounds.fill()
+        bgPath.fill()
 
         let path = NSBezierPath()
-        let startPoint = NSPoint(x: 20, y: bounds.midY)
-        let endPoint = NSPoint(x: bounds.width - 20, y: bounds.midY)
-        
+        let startPoint = NSPoint(x: 24, y: bounds.midY)
+        let endPoint = NSPoint(x: bounds.width - 24, y: bounds.midY)
+
         path.move(to: startPoint)
         path.line(to: endPoint)
-        
+
         color.setStroke()
-        
         path.lineWidth = lineWidth
         path.lineCapStyle = .round
         path.stroke()
 
-        NSColor.separatorColor.setStroke()
-        NSBezierPath(rect: bounds).stroke()
+        let stroke = NSBezierPath(roundedRect: bounds.insetBy(dx: 0.5, dy: 0.5), xRadius: radius, yRadius: radius)
+        NSColor.separatorColor.withAlphaComponent(0.5).setStroke()
+        stroke.lineWidth = 1
+        stroke.stroke()
     }
 }

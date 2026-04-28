@@ -1117,15 +1117,21 @@ class OverlayWindow: NSPanel {
     
     private func configureFeedbackContainerStyle(_ containerView: NSView) {
         containerView.wantsLayer = true
+        containerView.layer?.cornerRadius = 14
+        containerView.layer?.masksToBounds = true
+        containerView.layer?.borderWidth = 1
+        containerView.layer?.borderColor = NSColor.white.withAlphaComponent(0.10).cgColor
 
-        // Respect system appearance (Dark Mode vs Light Mode)
-        let isDarkMode = isDarkModeActive()
-        let backgroundColor: NSColor = isDarkMode
-            ? NSColor.black.withAlphaComponent(0.75)
-            : NSColor.white.withAlphaComponent(0.85)
-
-        containerView.layer?.backgroundColor = backgroundColor.cgColor
-        containerView.layer?.cornerRadius = 8
+        // Frosted HUD background — sits behind label/preview subviews already added
+        let blur = NSVisualEffectView(frame: containerView.bounds)
+        blur.material = .hudWindow
+        blur.blendingMode = .behindWindow
+        blur.state = .active
+        blur.autoresizingMask = [.width, .height]
+        blur.wantsLayer = true
+        blur.layer?.cornerRadius = 14
+        blur.layer?.masksToBounds = true
+        containerView.addSubview(blur, positioned: .below, relativeTo: nil)
     }
     
     private func createFeedbackLabel(

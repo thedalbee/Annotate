@@ -7,11 +7,40 @@ class ColorSwatchButton: NSButton {
     }
 
     var colorIndex: Int = 0
+    var isHovered: Bool = false {
+        didSet { needsDisplay = true }
+    }
+
+    private var trackingArea: NSTrackingArea?
+
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        if let existing = trackingArea { removeTrackingArea(existing) }
+        let area = NSTrackingArea(
+            rect: bounds,
+            options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect],
+            owner: self,
+            userInfo: nil)
+        addTrackingArea(area)
+        trackingArea = area
+    }
+
+    override func mouseEntered(with event: NSEvent) { isHovered = true }
+    override func mouseExited(with event: NSEvent) { isHovered = false }
 
     override func draw(_ dirtyRect: NSRect) {
-        super.draw(dirtyRect)
+        let radius: CGFloat = 10
+        let inset: CGFloat = isHovered ? 1 : 3
+        let rect = bounds.insetBy(dx: inset, dy: inset)
+        let path = NSBezierPath(roundedRect: rect, xRadius: radius, yRadius: radius)
         swatchColor.setFill()
-        NSBezierPath(rect: bounds).fill()
+        path.fill()
+
+        if isHovered {
+            NSColor.white.withAlphaComponent(0.85).setStroke()
+            path.lineWidth = 1.5
+            path.stroke()
+        }
     }
 }
 
@@ -31,13 +60,24 @@ class ColorPickerViewController: NSViewController {
     }
 
     override func loadView() {
-        let containerView = NSView(frame: NSRect(x: 0, y: 0, width: 150, height: 100))
+        let containerSize = NSSize(width: 180, height: 130)
+        let containerView = NSView(frame: NSRect(origin: .zero, size: containerSize))
+
+        let visualEffect = NSVisualEffectView(frame: containerView.bounds)
+        visualEffect.material = .hudWindow
+        visualEffect.blendingMode = .behindWindow
+        visualEffect.state = .active
+        visualEffect.wantsLayer = true
+        visualEffect.layer?.cornerRadius = 14
+        visualEffect.layer?.masksToBounds = true
+        visualEffect.translatesAutoresizingMaskIntoConstraints = false
+        containerView.addSubview(visualEffect)
 
         let stackView = NSStackView()
         stackView.orientation = .vertical
-        stackView.alignment = .leading
+        stackView.alignment = .centerX
         stackView.distribution = .fillEqually
-        stackView.spacing = 0
+        stackView.spacing = 6
 
         let columnsPerRow = 3
         var buttonIndex = 0
@@ -47,11 +87,14 @@ class ColorPickerViewController: NSViewController {
             rowStack.orientation = .horizontal
             rowStack.alignment = .centerY
             rowStack.distribution = .fillEqually
-            rowStack.spacing = 5
+            rowStack.spacing = 6
 
             for color in chunk {
-                let button = ColorSwatchButton(frame: NSRect(x: 0, y: 0, width: 50, height: 50))
+                let button = ColorSwatchButton(frame: NSRect(x: 0, y: 0, width: 44, height: 44))
                 button.swatchColor = color
+                button.isBordered = false
+                button.bezelStyle = .smallSquare
+                button.wantsLayer = true
                 button.target = self
                 button.action = #selector(colorSwatchClicked(_:))
 
@@ -68,11 +111,16 @@ class ColorPickerViewController: NSViewController {
         containerView.addSubview(stackView)
         stackView.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
-            stackView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 10),
+            visualEffect.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
+            visualEffect.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
+            visualEffect.topAnchor.constraint(equalTo: containerView.topAnchor),
+            visualEffect.bottomAnchor.constraint(equalTo: containerView.bottomAnchor),
+
+            stackView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 12),
             stackView.trailingAnchor.constraint(
-                equalTo: containerView.trailingAnchor, constant: -10),
-            stackView.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 10),
-            stackView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -10),
+                equalTo: containerView.trailingAnchor, constant: -12),
+            stackView.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 12),
+            stackView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -12),
         ])
 
         self.view = containerView
@@ -133,8 +181,9 @@ class ColorPickerViewController: NSViewController {
             label.isSelectable = false
             label.textColor = button.swatchColor.contrastingColor()
 
-            label.font = NSFont.boldSystemFont(ofSize: 12)
+            label.font = NSFont.systemFont(ofSize: 11, weight: .semibold)
             label.alignment = .center
+            label.alphaValue = 0.7
 
             button.addSubview(label)
             label.translatesAutoresizingMaskIntoConstraints = false
